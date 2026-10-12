@@ -2,6 +2,7 @@ package main
 
 include money "../src/money.salam"
 include dates "../src/dates.salam"
+include csv "../src/csv.salam"
 import os
 
 func Check(ok: bool, name: str):
@@ -28,5 +29,16 @@ func main:
     Check(not dates.Valid("2026-04-31"), "month length")
     Check(not dates.Valid("2026-1-01"), "canonical date")
     Check(not dates.Month("2026-13"), "month range")
+    mut table := csv.Parse("a,b\r\n\"hello, world\",\"line1\nline2\"\r\n")
+    Check(table.error == "" and table.rows.len() == 2, "CSV record count")
+    Check(table.rows.get(1).fields.get(0) == "hello, world", "quoted comma")
+    Check(table.rows.get(1).fields.get(1) == "line1\nline2", "quoted newline")
+    csv.Free(table)
+    mut bad := csv.Parse("a,\"never closed")
+    Check(bad.error != "", "unclosed CSV rejected")
+    csv.Free(bad)
+    mut tail := csv.Parse("\"closed\"oops,b")
+    Check(tail.error != "", "CSV trailing junk rejected")
+    csv.Free(tail)
     println "unit checks passed"
 end

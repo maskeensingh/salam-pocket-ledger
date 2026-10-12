@@ -1,0 +1,88 @@
+package csv
+
+import str
+import mem
+
+pub struct Row:
+    pub fields: Vector<str> = Vector {}
+end
+
+pub struct Table:
+    pub rows: Vector<Row> = Vector {}
+    pub error: str = ""
+end
+
+pub func Free(table &: Table):
+    repeat table.rows.len() in i:
+        mut row := table.rows.get(i)
+        repeat row.fields.len() in j: mem.Free(row.fields.get(j) as void*) end
+        row.fields.free()
+    end
+    table.rows.free()
+end
+
+// Four states: start of field, unquoted, quoted, and after closing quote.
+// Accept doubled quotes and embedded newlines; reject malformed CSV entirely.
+pub func Parse(text: str): Table:
+    mut result := Table {}
+    mut row := Row {}
+    mut field := str.NewBuilder()
+    defer str.BufFree(field)
+    mut state := 0
+    mut i := 0
+    n := str.ByteLen(text)
+    bytes := (text as void*) as u8*
+    until i <= n:
+        mut ch := 0
+        if i < n: ch = bytes[i] as int end
+        if state == 2:
+            if i == n:
+                result.error = "unterminated quoted field"
+                break
+            else ch == 34:
+                state = 3
+            else:
+                str.BufAppendChar(field, ch)
+            end
+        else state == 3 and ch == 34:
+            str.BufAppendChar(field, 34)
+            state = 2
+        else ch == 44 or ch == 10 or ch == 13 or i == n:
+            // Do not create an extra record after the final line ending.
+            if i == n and state == 0 and row.fields.len() == 0 and str.BufLen(field) == 0: break end
+            row.fields.push(str.BufStr(field))
+            str.BufReset(field)
+            state = 0
+            if row.fields.len() > 16:
+                result.error = "too many columns (maximum 16)"
+                break
+            end
+            if ch != 44:
+                result.rows.push(row)
+                row = Row {}
+                if result.rows.len() > 10001:
+                    result.error = "too many records (maximum 10000 plus header)"
+                    break
+                end
+                if ch == 13 and i + 1 < n and bytes[i + 1] == 10: i += 1 end
+            end
+        else state == 3:
+            result.error = "unexpected text after closing quote"
+            break
+        else ch == 34:
+            if state != 0:
+                result.error = "quote inside unquoted field"
+                break
+            end
+            state = 2
+        else:
+            str.BufAppendChar(field, ch)
+            state = 1
+        end
+        i += 1
+    end
+    // Partial records are owned here even when validation fails.
+    repeat row.fields.len() in j: mem.Free(row.fields.get(j) as void*) end
+    row.fields.free()
+    ret result
+end
