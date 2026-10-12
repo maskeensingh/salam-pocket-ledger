@@ -1,0 +1,32 @@
+package main
+
+include money "../src/money.salam"
+include dates "../src/dates.salam"
+import os
+
+func Check(ok: bool, name: str):
+    if not ok:
+        printerrln "FAIL: " + name
+        os.Exit(1)
+    end
+end
+
+func main:
+    Check(money.Parse("12.34") == 1234, "exact cents")
+    Check(money.Parse("0.1") == 10, "one decimal")
+    Check(money.Parse("2") == 200, "whole units")
+    Check(money.Parse("-1") == -1, "negative rejected")
+    Check(money.Parse("1.001") == -1, "no rounding")
+    Check(money.Parse("1.") == -1, "missing fraction")
+    Check(money.Parse("1e3") == -1, "no scientific notation")
+    Check(money.Parse("999999999.99") == 99999999999 as i64, "maximum")
+    Check(money.Parse("1000000000") == -1, "overflow guard")
+    Check(money.Format(5) == "0.05", "format cents")
+    Check(dates.Valid("2024-02-29"), "leap year")
+    Check(not dates.Valid("1900-02-29"), "century exception")
+    Check(dates.Valid("2000-02-29"), "400 year rule")
+    Check(not dates.Valid("2026-04-31"), "month length")
+    Check(not dates.Valid("2026-1-01"), "canonical date")
+    Check(not dates.Month("2026-13"), "month range")
+    println "unit checks passed"
+end

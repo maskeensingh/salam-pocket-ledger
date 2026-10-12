@@ -1,0 +1,35 @@
+package dates
+
+import conv
+
+pub func Month(text: str): bool:
+    if text.len() != 7: ret false end
+    repeat text.len() in i:
+        ch := text.substr(i, 1)
+        if i == 4:
+            if ch != "-": ret false end
+        else:
+            if "0123456789".find(ch) < 0: ret false end
+        end
+    end
+    year := conv.ParseInt(text.substr(0, 4))
+    month := conv.ParseInt(text.substr(5, 2))
+    ret year >= 1900 and month >= 1 and month <= 12
+end
+
+pub func Valid(text: str): bool:
+    if text.len() != 10: ret false end
+    if not Month(text.substr(0, 7)) or text.substr(7, 1) != "-": ret false end
+    if "0123456789".find(text.substr(8, 1)) < 0: ret false end
+    if "0123456789".find(text.substr(9, 1)) < 0: ret false end
+    year := conv.ParseInt(text.substr(0, 4))
+    month := conv.ParseInt(text.substr(5, 2))
+    day := conv.ParseInt(text.substr(8, 2))
+    mut last := 31
+    if month == 4 or month == 6 or month == 9 or month == 11: last = 30 end
+    if month == 2:
+        last = 28
+        if year % 400 == 0 or (year % 4 == 0 and year % 100 != 0): last = 29 end
+    end
+    ret day >= 1 and day <= last
+end

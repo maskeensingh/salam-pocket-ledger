@@ -1,0 +1,38 @@
+package money
+
+import conv
+
+// Non-negative decimal amounts only; use integer minor units throughout.
+// A bounded amount keeps 10,000-row aggregates safely inside signed i64.
+pub func Parse(text: str): i64:
+    if text.len() == 0 or text.len() > 12: ret -1 end
+    mut value := 0 as i64
+    mut decimals := -1
+    mut digits := 0
+    repeat text.len() in i:
+        ch := text.substr(i, 1)
+        if ch == ".":
+            if decimals >= 0 or digits == 0: ret -1 end
+            decimals = 0
+        else:
+            d := "0123456789".find(ch)
+            if d < 0: ret -1 end
+            value = value * 10 + d
+            digits += 1
+            if decimals >= 0: decimals += 1 end
+            if decimals > 2 or value > 99999999999 as i64: ret -1 end
+        end
+    end
+    if decimals == 0: ret -1 end
+    if decimals < 0: value *= 100 end
+    if decimals == 1: value *= 10 end
+    if value > 99999999999 as i64: ret -1 end
+    ret value
+end
+
+pub func Format(value: i64): str:
+    cents := value % 100
+    prefix := conv.FormatInt(value / 100) + "."
+    if cents < 10: ret prefix + "0" + conv.FormatInt(cents) end
+    ret prefix + conv.FormatInt(cents)
+end
