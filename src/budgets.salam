@@ -1,0 +1,49 @@
+package budgets
+
+include csv "csv.salam"
+include schema "schema.salam"
+include money "money.salam"
+
+pub struct Budget:
+    pub category: str = ""
+    pub cents: i64 = 0
+end
+
+pub struct Plan:
+    pub items: Vector<Budget> = Vector {}
+    pub error: str = ""
+end
+
+pub func Load(table: csv.Table): Plan:
+    mut plan := Plan {}
+    if table.error != "": plan.error = table.error ret plan end
+    if not schema.Header(table, "category,limit"):
+        plan.error = "expected budget header: category,limit"
+        ret plan
+    end
+    if table.rows.len() > 201:
+        plan.error = "maximum 200 budget categories"
+        ret plan
+    end
+    repeat table.rows.len() - 1 in offset:
+        row := table.rows.get(offset + 1)
+        if row.fields.len() != 2:
+            plan.error = "budget record must have 2 columns"
+            ret plan
+        end
+        name := row.fields.get(0)
+        amount := money.Parse(row.fields.get(1))
+        if not schema.Category(name) or amount < 0:
+            plan.error = "invalid budget category or limit"
+            ret plan
+        end
+        repeat plan.items.len() in i:
+            if plan.items.get(i).category == name:
+                plan.error = "duplicate budget category"
+                ret plan
+            end
+        end
+        plan.items.push(Budget {category = name, cents = amount})
+    end
+    ret plan
+end

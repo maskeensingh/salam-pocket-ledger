@@ -1,0 +1,62 @@
+package summary
+
+include expenses "expenses.salam"
+include budgets "budgets.salam"
+import str
+
+pub struct Category:
+    pub name: str = ""
+    pub spent: i64 = 0
+    pub budget: i64 = -1
+    pub count: int = 0
+end
+
+pub struct Report:
+    pub categories: Vector<Category> = Vector {}
+    pub total: i64 = 0
+    pub count: int = 0
+    pub error: str = ""
+end
+
+pub func Build(ledger: expenses.Ledger, plan: budgets.Plan, month: str): Report:
+    mut report := Report {}
+    repeat plan.items.len() in i:
+        item := plan.items.get(i)
+        report.categories.push(Category {name = item.category, budget = item.cents})
+    end
+    repeat ledger.records.len() in i:
+        item := ledger.records.get(i)
+        if item.date.substr(0, 7) != month: continue end
+        mut index := -1
+        repeat report.categories.len() in j:
+            if report.categories.get(j).name == item.category: index = j end
+        end
+        if index < 0:
+            if report.categories.len() >= 200:
+                report.error = "maximum 200 categories in a report"
+                ret report
+            end
+            index = report.categories.len()
+            report.categories.push(Category {name = item.category})
+        end
+        mut category := report.categories.get(index)
+        category.spent += item.cents
+        category.count += 1
+        report.categories.set(index, category)
+        report.total += item.cents
+        report.count += 1
+    end
+    // Bound of 200 categories keeps this simple stable insertion sort cheap.
+    repeat report.categories.len() in i:
+        mut j := i
+        until j > 0:
+            left := report.categories.get(j - 1)
+            right := report.categories.get(j)
+            if str.Compare(left.name, right.name) <= 0: break end
+            report.categories.set(j - 1, right)
+            report.categories.set(j, left)
+            j -= 1
+        end
+    end
+    ret report
+end

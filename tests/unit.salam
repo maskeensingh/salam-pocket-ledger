@@ -4,6 +4,8 @@ include money "../src/money.salam"
 include dates "../src/dates.salam"
 include csv "../src/csv.salam"
 include expenses "../src/expenses.salam"
+include budgets "../src/budgets.salam"
+include summary "../src/summary.salam"
 import os
 
 func Check(ok: bool, name: str):
@@ -45,6 +47,20 @@ func main:
     mut ledger := expenses.Load(input)
     Check(ledger.error == "" and ledger.records.len() == 1, "expense schema")
     Check(ledger.records.get(0).cents == 1234, "expense amount")
+    mut budgetCsv := csv.Parse("category,limit\nfood,10\nbooks,20\n")
+    mut plan := budgets.Load(budgetCsv)
+    Check(plan.error == "", "budget schema")
+    mut report := summary.Build(ledger, plan, "2026-10")
+    Check(report.total == 1234 and report.count == 1, "monthly total")
+    Check(report.categories.get(0).name == "books", "sorted categories")
+    Check(report.categories.get(0).spent == 0, "unused budget preserved")
+    Check(report.categories.get(1).spent > report.categories.get(1).budget, "over budget")
+    report.categories.free()
+    mut empty := summary.Build(ledger, plan, "2026-09")
+    Check(empty.total == 0 and empty.count == 0, "month filter")
+    empty.categories.free()
+    plan.items.free()
+    csv.Free(budgetCsv)
     ledger.records.free()
     csv.Free(input)
     mut invalid := csv.Parse("date,category,amount,description\n2026-02-30,food,1,bad\n")
@@ -52,5 +68,10 @@ func main:
     Check(rejected.error != "", "invalid calendar record rejected")
     rejected.records.free()
     csv.Free(invalid)
+    mut duplicateCsv := csv.Parse("category,limit\nfood,10\nfood,20\n")
+    mut duplicate := budgets.Load(duplicateCsv)
+    Check(duplicate.error != "", "duplicate budget rejected")
+    duplicate.items.free()
+    csv.Free(duplicateCsv)
     println "unit checks passed"
 end
