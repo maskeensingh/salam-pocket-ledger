@@ -1,0 +1,74 @@
+package files
+
+import mem
+import str
+
+extern:
+    func fopen(path: str, mode: str): void*
+    func fclose(stream: void*): int
+    func fseek(stream: void*, offset: i64, whence: int): int
+    func ftell(stream: void*): i64
+    func fread(buf: void*, size: u64, count: u64, stream: void*): u64
+    func ferror(stream: void*): int
+end
+
+pub struct Content:
+    pub text: str = ""
+    pub error: str = ""
+end
+
+func Utf8(bytes: u8*, n: int): bool:
+    mut i := 0
+    until i < n:
+        first := bytes[i] as int
+        mut count := 0
+        mut cp := first
+        mut minimum := 0
+        if first < 128:
+            if first == 0: ret false end
+        else first >= 194 and first <= 223:
+            count = 1 cp = first - 192 minimum = 128
+        else first >= 224 and first <= 239:
+            count = 2 cp = first - 224 minimum = 2048
+        else first >= 240 and first <= 244:
+            count = 3 cp = first - 240 minimum = 65536
+        else:
+            ret false
+        end
+        if i + count >= n: ret false end
+        repeat count in offset:
+            next := bytes[i + offset + 1] as int
+            if next < 128 or next > 191: ret false end
+            cp = cp * 64 + next - 128
+        end
+        if cp < minimum or cp > 1114111 or (cp >= 55296 and cp <= 57343): ret false end
+        i += count + 1
+    end
+    ret true
+end
+
+// Only seekable input files are accepted; read at most 1 MiB plus one byte.
+pub func Read(path: str): Content:
+    stream := fopen(path, "rb")
+    if stream == null: ret Content {error = "cannot open input file"} end
+    defer fclose(stream)
+    if fseek(stream, 0, 2) != 0: ret Content {error = "input must be a seekable file"} end
+    size := ftell(stream)
+    if size < 0 or size > 1048576: ret Content {error = "input exceeds 1 MiB or cannot be sized"} end
+    if fseek(stream, 0, 0) != 0: ret Content {error = "cannot rewind input"} end
+    buffer := mem.Allocate(1048578 as u64)
+    if buffer == null: ret Content {error = "cannot allocate input buffer"} end
+    got := fread(buffer, 1 as u64, 1048577 as u64, stream) as int
+    bytes := buffer as u8*
+    bytes[got] = 0
+    mut err := ""
+    if ferror(stream) != 0: err = "failed to read input" end
+    if got > 1048576: err = "input exceeds 1 MiB" end
+    if got != size: err = "input changed while reading" end
+    if err == "" and not Utf8(bytes, got): err = "input must be UTF-8 without NUL bytes" end
+    if err != "":
+        mem.Free(buffer)
+        ret Content {error = err}
+    end
+    ret Content {text = buffer as str}
+end

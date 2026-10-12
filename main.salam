@@ -1,0 +1,10 @@
+package main
+
+import os
+include cli "src/cli.salam"
+
+func main:
+    argv := os.Args()
+    defer argv.free()
+    ret cli.Run(argv)
+end

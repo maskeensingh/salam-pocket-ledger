@@ -1,0 +1,86 @@
+package cli
+
+import mem
+include files "files.salam"
+include dates "dates.salam"
+include csv "csv.salam"
+include expenses "expenses.salam"
+include budgets "budgets.salam"
+include summary "summary.salam"
+include text_report "text_report.salam"
+include json_report "json_report.salam"
+
+func Fail(message: str): int:
+    printerrln "pocket-ledger: " + message
+    ret 2
+end
+
+pub func Run(argv: Vector<str>): int:
+    if argv.len() == 2 and argv.get(1) == "--help":
+        println "Usage: pocket-ledger EXPENSES.csv --month YYYY-MM [--budgets BUDGETS.csv] [--json]"
+        println "Reads one currency with two decimal places. Does not modify files."
+        ret 0
+    end
+    mut path := ""
+    mut month := ""
+    mut budgetPath := ""
+    mut wantJson := false
+    mut i := 1
+    until i < argv.len():
+        arg := argv.get(i)
+        if arg == "--json":
+            if wantJson: ret Fail("duplicate --json") end
+            wantJson = true
+        else arg == "--month" or arg == "--budgets":
+            if i + 1 >= argv.len(): ret Fail("option requires a value") end
+            i += 1
+            value := argv.get(i)
+            if value.len() == 0 or value.substr(0, 1) == "-": ret Fail("invalid option value") end
+            if arg == "--month":
+                if month != "": ret Fail("duplicate --month") end
+                month = value
+            else:
+                if budgetPath != "": ret Fail("duplicate --budgets") end
+                budgetPath = value
+            end
+        else:
+            if arg.len() == 0 or arg.substr(0, 1) == "-": ret Fail("unknown option; use --help") end
+            if path != "": ret Fail("provide one expense CSV file") end
+            path = arg
+        end
+        i += 1
+    end
+    if path == "" or not dates.Month(month): ret Fail("require an expense CSV and --month YYYY-MM") end
+    content := files.Read(path)
+    if content.error != "": ret Fail(content.error) end
+    defer mem.Free(content.text as void*)
+    mut table := csv.Parse(content.text)
+    defer csv.Free(table)
+    mut ledger := expenses.Load(table)
+    defer ledger.records.free()
+    if ledger.error != "": ret Fail(ledger.error) end
+    mut budgetTable := csv.Table {}
+    defer csv.Free(budgetTable)
+    mut plan := budgets.Plan {}
+    defer plan.items.free()
+    if budgetPath != "":
+        budgetContent := files.Read(budgetPath)
+        if budgetContent.error != "": ret Fail(budgetContent.error) end
+        budgetTable = csv.Parse(budgetContent.text)
+        mem.Free(budgetContent.text as void*)
+        plan = budgets.Load(budgetTable)
+        if plan.error != "": ret Fail(plan.error) end
+    end
+    mut report := summary.Build(ledger, plan, month)
+    defer report.categories.free()
+    if report.error != "": ret Fail(report.error) end
+    mut rendered := ""
+    if wantJson:
+        rendered = json_report.Render(report, month)
+    else:
+        rendered = text_report.Render(report, month)
+    end
+    print rendered
+    mem.Free(rendered as void*)
+    ret 0
+end

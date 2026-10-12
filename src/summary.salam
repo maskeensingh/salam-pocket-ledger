@@ -1,8 +1,9 @@
 package summary
 
+import str
+
 include expenses "expenses.salam"
 include budgets "budgets.salam"
-import str
 
 pub struct Category:
     pub name: str = ""

@@ -1,10 +1,11 @@
 package expenses
 
+import conv
+
 include csv "csv.salam"
 include schema "schema.salam"
 include money "money.salam"
 include dates "dates.salam"
-import conv
 
 pub struct Expense:
     pub date: str = ""

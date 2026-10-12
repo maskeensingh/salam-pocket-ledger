@@ -1,12 +1,13 @@
 package main
 
+import os
+
 include money "../src/money.salam"
 include dates "../src/dates.salam"
 include csv "../src/csv.salam"
 include expenses "../src/expenses.salam"
 include budgets "../src/budgets.salam"
 include summary "../src/summary.salam"
-import os
 
 func Check(ok: bool, name: str):
     if not ok:
@@ -43,8 +44,8 @@ func main:
     mut tail := csv.Parse("\"closed\"oops,b")
     Check(tail.error != "", "CSV trailing junk rejected")
     csv.Free(tail)
-    mut input := csv.Parse("date,category,amount,description\n2026-10-01,food,12.34,Lunch\n")
-    mut ledger := expenses.Load(input)
+    mut expenseCsv := csv.Parse("date,category,amount,description\n2026-10-01,food,12.34,Lunch\n")
+    mut ledger := expenses.Load(expenseCsv)
     Check(ledger.error == "" and ledger.records.len() == 1, "expense schema")
     Check(ledger.records.get(0).cents == 1234, "expense amount")
     mut budgetCsv := csv.Parse("category,limit\nfood,10\nbooks,20\n")
@@ -62,7 +63,7 @@ func main:
     plan.items.free()
     csv.Free(budgetCsv)
     ledger.records.free()
-    csv.Free(input)
+    csv.Free(expenseCsv)
     mut invalid := csv.Parse("date,category,amount,description\n2026-02-30,food,1,bad\n")
     mut rejected := expenses.Load(invalid)
     Check(rejected.error != "", "invalid calendar record rejected")

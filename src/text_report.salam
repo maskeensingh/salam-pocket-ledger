@@ -1,0 +1,25 @@
+package text_report
+
+import conv
+import str
+include summary "summary.salam"
+include money "money.salam"
+
+pub func Render(report: summary.Report, month: str): str:
+    mut out := str.NewBuilder()
+    defer str.BufFree(out)
+    str.BufAppend(out, "Pocket Ledger - " + month + "\n")
+    str.BufAppend(out, "TOTAL " + money.Format(report.total) + " (" + conv.FormatInt(report.count) + " records)\n")
+    repeat report.categories.len() in i:
+        row := report.categories.get(i)
+        str.BufAppend(out, row.name + ": " + money.Format(row.spent))
+        if row.budget >= 0:
+            str.BufAppend(out, " / " + money.Format(row.budget))
+            if row.spent > row.budget: str.BufAppend(out, " OVER") end
+        else:
+            str.BufAppend(out, " (no budget)")
+        end
+        str.BufAppend(out, "\n")
+    end
+    ret str.BufStr(out)
+end

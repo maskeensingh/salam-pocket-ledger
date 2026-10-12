@@ -1,0 +1,35 @@
+package json_report
+
+import conv
+import str
+import encoding.json
+include summary "summary.salam"
+
+pub func Render(report: summary.Report, month: str): str:
+    mut out := str.NewBuilder()
+    defer str.BufFree(out)
+    str.BufAppend(out, `{"month":` + json.Str(month))
+    str.BufAppend(out, `,"total_cents":` + conv.FormatInt(report.total))
+    str.BufAppend(out, `,"records":` + conv.FormatInt(report.count) + `,"categories":[`)
+    repeat report.categories.len() in i:
+        row := report.categories.get(i)
+        if i > 0: str.BufAppend(out, ",") end
+        str.BufAppend(out, `{"name":` + json.Str(row.name))
+        str.BufAppend(out, `,"spent_cents":` + conv.FormatInt(row.spent))
+        str.BufAppend(out, `,"records":` + conv.FormatInt(row.count) + `,"budget_cents":`)
+        if row.budget < 0:
+            str.BufAppend(out, "null")
+        else:
+            str.BufAppend(out, conv.FormatInt(row.budget))
+        end
+        str.BufAppend(out, `,"over_budget":`)
+        if row.budget >= 0 and row.spent > row.budget:
+            str.BufAppend(out, "true")
+        else:
+            str.BufAppend(out, "false")
+        end
+        str.BufAppend(out, "}")
+    end
+    str.BufAppend(out, "]}\n")
+    ret str.BufStr(out)
+end
