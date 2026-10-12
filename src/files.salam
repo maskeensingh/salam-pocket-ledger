@@ -50,14 +50,14 @@ end
 // Only seekable input files are accepted; read at most 1 MiB plus one byte.
 pub func Read(path: str): Content:
     stream := fopen(path, "rb")
-    if stream == null: ret Content {error = "cannot open input file"} end
+    if stream == null: ret Content { error = "cannot open input file" } end
     defer fclose(stream)
-    if fseek(stream, 0, 2) != 0: ret Content {error = "input must be a seekable file"} end
+    if fseek(stream, 0, 2) != 0: ret Content { error = "input must be a seekable file" } end
     size := ftell(stream)
-    if size < 0 or size > 1048576: ret Content {error = "input exceeds 1 MiB or cannot be sized"} end
-    if fseek(stream, 0, 0) != 0: ret Content {error = "cannot rewind input"} end
+    if size < 0 or size > 1048576: ret Content { error = "input exceeds 1 MiB or cannot be sized" } end
+    if fseek(stream, 0, 0) != 0: ret Content { error = "cannot rewind input" } end
     buffer := mem.Allocate(1048578 as u64)
-    if buffer == null: ret Content {error = "cannot allocate input buffer"} end
+    if buffer == null: ret Content { error = "cannot allocate input buffer" } end
     got := fread(buffer, 1 as u64, 1048577 as u64, stream) as int
     bytes := buffer as u8*
     bytes[got] = 0
@@ -68,7 +68,7 @@ pub func Read(path: str): Content:
     if err == "" and not Utf8(bytes, got): err = "input must be UTF-8 without NUL bytes" end
     if err != "":
         mem.Free(buffer)
-        ret Content {error = err}
+        ret Content { error = err }
     end
-    ret Content {text = buffer as str}
+    ret Content { text = buffer as str }
 end

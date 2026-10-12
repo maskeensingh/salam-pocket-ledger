@@ -3,6 +3,7 @@ package json_report
 import conv
 import str
 import encoding.json
+
 include summary "summary.salam"
 
 pub func Render(report: summary.Report, month: str): str:

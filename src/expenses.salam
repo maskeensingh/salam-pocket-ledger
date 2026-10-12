@@ -46,7 +46,7 @@ pub func Load(table: csv.Table): Ledger:
             ledger.error = "record " + conv.FormatInt(index + 1) + ": " + problem
             ret ledger
         end
-        ledger.records.push(Expense {date = row.fields.get(0), category = row.fields.get(1), cents = money.Parse(row.fields.get(2)), description = row.fields.get(3)})
+        ledger.records.push(Expense { date = row.fields.get(0), category = row.fields.get(1), cents = money.Parse(row.fields.get(2)), description = row.fields.get(3) })
     end
     ret ledger
 end

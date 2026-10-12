@@ -1,6 +1,7 @@
 package main
 
 import os
+
 include cli "src/cli.salam"
 
 func main:

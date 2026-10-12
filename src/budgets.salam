@@ -43,7 +43,7 @@ pub func Load(table: csv.Table): Plan:
                 ret plan
             end
         end
-        plan.items.push(Budget {category = name, cents = amount})
+        plan.items.push(Budget { category = name, cents = amount })
     end
     ret plan
 end

@@ -23,7 +23,7 @@ pub func Build(ledger: expenses.Ledger, plan: budgets.Plan, month: str): Report:
     mut report := Report {}
     repeat plan.items.len() in i:
         item := plan.items.get(i)
-        report.categories.push(Category {name = item.category, budget = item.cents})
+        report.categories.push(Category { name = item.category, budget = item.cents })
     end
     repeat ledger.records.len() in i:
         item := ledger.records.get(i)
@@ -38,7 +38,7 @@ pub func Build(ledger: expenses.Ledger, plan: budgets.Plan, month: str): Report:
                 ret report
             end
             index = report.categories.len()
-            report.categories.push(Category {name = item.category})
+            report.categories.push(Category { name = item.category })
         end
         mut category := report.categories.get(index)
         category.spent += item.cents
