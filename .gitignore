@@ -1,4 +1,5 @@
 build/
+.salam-build/
 __pycache__/
 *.c
 *.o
