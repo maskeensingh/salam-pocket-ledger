@@ -1,0 +1,51 @@
+package expenses
+
+include csv "csv.salam"
+include schema "schema.salam"
+include money "money.salam"
+include dates "dates.salam"
+import conv
+
+pub struct Expense:
+    pub date: str = ""
+    pub category: str = ""
+    pub cents: i64 = 0
+    pub description: str = ""
+end
+
+pub struct Ledger:
+    pub records: Vector<Expense> = Vector {}
+    pub error: str = ""
+end
+
+// Records borrow strings from the CSV table; keep it alive until reporting ends.
+pub func Load(table: csv.Table): Ledger:
+    mut ledger := Ledger {}
+    if table.error != "": ledger.error = table.error ret ledger end
+    if not schema.Header(table, "date,category,amount,description"):
+        ledger.error = "expected header: date,category,amount,description"
+        ret ledger
+    end
+    repeat table.rows.len() - 1 in offset:
+        index := offset + 1
+        row := table.rows.get(index)
+        mut problem := ""
+        if row.fields.len() != 4:
+            problem = "expected 4 columns"
+        else not dates.Valid(row.fields.get(0)):
+            problem = "invalid date; expected YYYY-MM-DD from 1900 onward"
+        else not schema.Category(row.fields.get(1)):
+            problem = "category must use lowercase ASCII letters, digits, _ or - (1–40 characters)"
+        else money.Parse(row.fields.get(2)) < 0:
+            problem = "invalid non-negative decimal amount (maximum 999999999.99)"
+        else row.fields.get(3).len() > 1000:
+            problem = "description exceeds 1000 characters"
+        end
+        if problem != "":
+            ledger.error = "record " + conv.FormatInt(index + 1) + ": " + problem
+            ret ledger
+        end
+        ledger.records.push(Expense {date = row.fields.get(0), category = row.fields.get(1), cents = money.Parse(row.fields.get(2)), description = row.fields.get(3)})
+    end
+    ret ledger
+end

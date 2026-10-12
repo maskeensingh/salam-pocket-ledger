@@ -3,6 +3,7 @@ package main
 include money "../src/money.salam"
 include dates "../src/dates.salam"
 include csv "../src/csv.salam"
+include expenses "../src/expenses.salam"
 import os
 
 func Check(ok: bool, name: str):
@@ -40,5 +41,16 @@ func main:
     mut tail := csv.Parse("\"closed\"oops,b")
     Check(tail.error != "", "CSV trailing junk rejected")
     csv.Free(tail)
+    mut input := csv.Parse("date,category,amount,description\n2026-10-01,food,12.34,Lunch\n")
+    mut ledger := expenses.Load(input)
+    Check(ledger.error == "" and ledger.records.len() == 1, "expense schema")
+    Check(ledger.records.get(0).cents == 1234, "expense amount")
+    ledger.records.free()
+    csv.Free(input)
+    mut invalid := csv.Parse("date,category,amount,description\n2026-02-30,food,1,bad\n")
+    mut rejected := expenses.Load(invalid)
+    Check(rejected.error != "", "invalid calendar record rejected")
+    rejected.records.free()
+    csv.Free(invalid)
     println "unit checks passed"
 end

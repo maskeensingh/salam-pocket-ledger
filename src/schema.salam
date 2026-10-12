@@ -1,0 +1,23 @@
+package schema
+
+include csv "csv.salam"
+
+pub func Header(table: csv.Table, expected: str): bool:
+    if table.rows.len() == 0: ret false end
+    names := expected.split(",")
+    defer names.free()
+    row := table.rows.get(0)
+    if row.fields.len() != names.len(): ret false end
+    repeat names.len() in i:
+        if row.fields.get(i) != names.get(i): ret false end
+    end
+    ret true
+end
+
+pub func Category(text: str): bool:
+    if text.len() == 0 or text.len() > 40: ret false end
+    repeat text.len() in i:
+        if "abcdefghijklmnopqrstuvwxyz0123456789_-".find(text.substr(i, 1)) < 0: ret false end
+    end
+    ret true
+end
